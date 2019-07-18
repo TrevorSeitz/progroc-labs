@@ -7,13 +7,12 @@ This lab will focus on creating automated browser regressions against a preexist
 This lab is cross-platform and can be run on Windows, Linux, and OSX. The instructions will focus on OSX and Linux; equivalent Windows instructions are left out. The author apologizes profusely in advance.
 
 [Python]: https://www.python.org/
-[Selenium]: <https://www.seleniumhq.org/>
+[Selenium]: https://www.seleniumhq.org/
 [Pytest]: https://docs.pytest.org/en/latest/
 
 ## Prerequisite Knowledge
 
-- Understand CSS selectors such as class and ID
-- Basic working knowledge of HTML
+- Basic working knowledge of HTML and attributes such as class and ID
 - Basic understanding of [XPath syntax](https://www.w3schools.com/xml/xpath_syntax.asp)
 
 Python knowledge is _not_ required, but would certainly help. Hopefully the exercises will enable you to pick up on syntax as you work!
@@ -108,7 +107,7 @@ Use the chromedriver (not the Selenium server) to navigate to google and search 
   - Navigates to google.com
   - Clicks the search bar
   - Enters a search term of your choice
-  - Clicks the search button
+  - Presses the `ENTER` key and waits a little for the search results to load
   - Closes the Selenium chromedriver window
 
 _Note:_ To run your script, you can either `./test_google.py` or `python test_google.py`. Make sure your conda environment is activated!
@@ -117,6 +116,7 @@ _Note:_ To run your script, you can either `./test_google.py` or `python test_go
 
 - Right-click and inspect elements to get their class and ID
 - Prefer to identify elements by ID
+- Check out the [different methods for selecting elements](https://selenium-python.readthedocs.io/locating-elements.html)
 
 ### Exercise 2
 
@@ -179,26 +179,19 @@ A quick debrief on fixture scopes:
 - Module-level: run once within each module that uses the fixture
 - Function-level: run before _each test_ function
 
+1. Create a module-level fixture with the logic for creating a new driver window, `yield`ing the driver object, and closing the driver in the teardown
+2. Update your test to use this fixture by setting the fixture name as an argument to the test. Run to make sure this works.
+3. Create a new test which searches for a _different_ term. You can copy and paste the first test. Run it again to see it fail. Fix it.
+4. What?! Why'd you copy-paste?! Don't you know about DRY?!! Abstract that search logic out into a separate helper function. This should _not_ have `test_` prefixed. This function will need your module-level fixture as an argument.
+5. Create a function level autouse fixture `@pytest.fixture(scope="function", autouse=True)` to run the fix you did in (4) after every test.
+
 [pytest documentation]: https://docs.pytest.org/en/latest/fixture.html
 
 ### Exercise 5
 
 Our test doesn't actually "test" anything (yet) because it cannot fail!
 
-We're going to use a pytest plugin now. Go ahead and install [pytest-dependency](https://github.com/RKrahl/pytest-dependency).
-
-    pip install pytest-dependency
-
-1. Move your search term into a constant at the top of the file `SEARCH_TERM = "<your search term>"` and update your search test to use this
-2. Create a new test function, `test_assert_title_contains_search`
-  - Mark this test to be dependent on the previous `test_perform_google_search`
-  - You don't need to inject the module-level fixture for this part, since it depends on the previous test
-3. Use Selenium to scrape the title in your new test
-4. Assert that the term you searched for is present in the title
-5. Run ONLY your new assertion test from the commandline -- the dependency should automatically be run!
-  `pytest test_google.py::test_assert_title_contains_search`
-
-_Note:_ The pytest-dependency plugin is not necessary if you always run all the tests. Pytest tries to run tests in the order they are found within source code. However, there are many situations where you may only want to run one specific test.
+Update the tests with asserts to check the title of the search results page for the original search term.
 
 ### Exercise 6
 
@@ -223,14 +216,12 @@ To start, go ahead and install `pytest-html` for rendering HTML reports:
       cells.insert(1, html.th("Time", class_="sortable time", col="time"))
       cells.pop()
 
-
   @pytest.mark.optionalhook
   def pytest_html_results_table_row(report, cells):
       """Add description and time columns to HTML report."""
       cells.insert(2, html.td(report.description))
       cells.insert(1, html.td(datetime.utcnow(), class_="col-time"))
       cells.pop()
-
 
   @pytest.mark.hookwrapper
   def pytest_runtest_makereport(item, call):
